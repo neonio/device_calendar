@@ -189,6 +189,31 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin {
         let hasPermissions = hasEventPermissions()
         result(hasPermissions)
     }
+    
+    private func requestPermissions(_ result: @escaping FlutterResult) {
+        DispatchQueue.main.async {
+            let currentStatus = EKEventStore.authorizationStatus(for: .event)
+            
+            if self.hasEventPermissions() {
+                result(true)
+                return
+            }
+            
+            if #available(macOS 14.0, *) {
+                self.eventStore.requestFullAccessToEvents { (accessGranted: Bool, error: Error?) in
+                    DispatchQueue.main.async {
+                        result(accessGranted)
+                    }
+                }
+            } else {
+                self.eventStore.requestAccess(to: .event) { (accessGranted: Bool, error: Error?) in
+                    DispatchQueue.main.async {
+                        result(accessGranted)
+                    }
+                }
+            }
+        }
+    }
 
     private func getSource() -> EKSource? {
       let localSources = eventStore.sources.filter { $0.sourceType == .local }

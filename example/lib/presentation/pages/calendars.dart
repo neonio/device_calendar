@@ -54,6 +54,17 @@ class _CalendarsPageState extends State<CalendarsPage> {
                   .titleLarge,
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: ElevatedButton.icon(
+              onPressed: _requestCalendarPermissions,
+              icon: const Icon(Icons.calendar_today),
+              label: const Text('Request Calendar Permissions'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
+              ),
+            ),
+          ),
           Expanded(
             flex: 1,
             child: ListView.builder(
@@ -197,6 +208,58 @@ class _CalendarsPageState extends State<CalendarsPage> {
       });
     } on PlatformException catch (e, s) {
       debugPrint('RETRIEVE_CALENDARS: $e, $s');
+    }
+  }
+
+  void _requestCalendarPermissions() async {
+    try {
+      var permissionsGranted = await _deviceCalendarPlugin.hasPermissions();
+      
+      if (permissionsGranted.isSuccess && permissionsGranted.data == true) {
+        // Permission already granted
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Calendar permissions are already granted!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        return;
+      }
+      
+      // Request permissions
+      permissionsGranted = await _deviceCalendarPlugin.requestPermissions();
+      
+      if (mounted) {
+        if (permissionsGranted.isSuccess && permissionsGranted.data == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Calendar permissions granted successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          // Refresh calendars after permission granted
+          _retrieveCalendars();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Calendar permissions denied. Please grant permissions in Settings.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } on PlatformException catch (e, s) {
+      debugPrint('REQUEST_PERMISSIONS: $e, $s');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error requesting permissions: ${e.message}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
