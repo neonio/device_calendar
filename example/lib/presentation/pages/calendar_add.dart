@@ -7,12 +7,12 @@ class CalendarAddPage extends StatefulWidget {
   const CalendarAddPage({Key? key}) : super(key: key);
 
   @override
-  _CalendarAddPageState createState() {
-    return _CalendarAddPageState();
+  CalendarAddPageState createState() {
+    return CalendarAddPageState();
   }
 }
 
-class _CalendarAddPageState extends State<CalendarAddPage> {
+class CalendarAddPageState extends State<CalendarAddPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late DeviceCalendarPlugin _deviceCalendarPlugin;
@@ -22,7 +22,9 @@ class _CalendarAddPageState extends State<CalendarAddPage> {
   ColorChoice? _colorChoice;
   String _localAccountName = '';
 
-  _CalendarAddPageState() {
+  @override
+  void initState() {
+    super.initState();
     _deviceCalendarPlugin = DeviceCalendarPlugin();
   }
 
@@ -95,7 +97,9 @@ class _CalendarAddPageState extends State<CalendarAddPage> {
             );
 
             if (result.isSuccess) {
-              Navigator.pop(context, true);
+              if (context.mounted) {
+                Navigator.pop(context, true);
+              }
             } else {
               showInSnackBar(result.errors
                   .map((err) => '[${err.errorCode}] ${err.errorMessage}')

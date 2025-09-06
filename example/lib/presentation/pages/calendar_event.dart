@@ -26,19 +26,18 @@ class CalendarEventPage extends StatefulWidget {
       : super(key: key);
 
   @override
-  _CalendarEventPageState createState() {
-    return _CalendarEventPageState(_calendar, _event, _recurringEventDialog, _eventColors);
+  State<CalendarEventPage> createState() {
+    return _CalendarEventPageState();
   }
 }
 
 class _CalendarEventPageState extends State<CalendarEventPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  final Calendar _calendar;
 
   Event? _event;
   late final DeviceCalendarPlugin _deviceCalendarPlugin;
-  final RecurringEventDialog? _recurringEventDialog;
+  RecurringEventDialog? _recurringEventDialog;
 
   DateTime get nowDate => DateTime.now();
 
@@ -63,11 +62,15 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
   EventStatus? _eventStatus;
   List<Attendee>? _attendees;
   List<Reminder>? _reminders;
-  List<EventColor>? _eventColors;
+  late final List<EventColor>? _eventColors;
   String _timezone = 'Etc/UTC';
 
-  _CalendarEventPageState(
-      this._calendar, this._event, this._recurringEventDialog, this._eventColors) {
+  @override
+  void initState() {
+    super.initState();
+    _event = widget._event;
+    _recurringEventDialog = widget._recurringEventDialog;
+    _eventColors = widget._eventColors;
     getCurentLocation();
   }
 
@@ -103,10 +106,11 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
         _endTime =
             TimeOfDay(hour: oneHourLater.hour, minute: oneHourLater.minute);
       }
-      _event = Event(_calendar.id,
+      _event = Event(widget._calendar.id,
           start: _startDate, end: _endDate, availability: _availability);
 
-      debugPrint('DeviceCalendarPlugin calendar id is: ${_calendar.id}');
+      debugPrint('DeviceCalendarPlugin calendar id is: ${widget._calendar.id}');
+
 
       _eventStatus = EventStatus.None;
     } else {
@@ -168,14 +172,14 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
       appBar: AppBar(
         title: Text(_event?.eventId?.isEmpty ?? true
             ? 'Create event'
-            : _calendar.isReadOnly == true
+            : widget._calendar.isReadOnly == true
                 ? 'View event ${_event?.title}'
                 : 'Edit event ${_event?.title}'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: AbsorbPointer(
-            absorbing: _calendar.isReadOnly ?? false,
+            absorbing: widget._calendar.isReadOnly ?? false,
             child: Column(
               children: [
                 Form(
@@ -303,9 +307,11 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                             if (_eventColors != null) {
                               final colors = _eventColors?.map((eventColor) => Color(eventColor.color)).toList();
                               final newColor = await ColorPickerDialog.selectColorDialog(colors ?? [], context);
-                              setState(() {
-                                _event?.updateEventColor(_eventColors?.firstWhereOrNull((eventColor) => Color(eventColor.color).value == newColor?.value));
-                              });
+                              if (context.mounted) {
+                                setState(() {
+                                  _event?.updateEventColor(_eventColors?.firstWhereOrNull((eventColor) => Color(eventColor.color) == newColor));
+                                });
+                              }
                             }
                           },
                         ),
@@ -407,7 +413,7 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                           ),
                         ),
                       ListTile(
-                        onTap: _calendar.isReadOnly == false
+                        onTap: widget._calendar.isReadOnly == false
                             ? () async {
                                 var result = await Navigator.push(
                                     context,
@@ -423,7 +429,7 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                               }
                             : null,
                         leading: const Icon(Icons.people),
-                        title: Text(_calendar.isReadOnly == false
+                        title: Text(widget._calendar.isReadOnly == false
                             ? 'Add Attendees'
                             : 'Attendees'),
                       ),
@@ -565,7 +571,7 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                               children: [
                                 const Icon(Icons.alarm),
                                 if (_reminders?.isEmpty ?? true)
-                                  Text(_calendar.isReadOnly == false
+                                  Text(widget._calendar.isReadOnly == false
                                       ? 'Add reminders'
                                       : 'Reminders'),
                                 for (var reminder in _reminders ?? [])
@@ -674,10 +680,12 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                               }),
                               const Divider(color: Colors.black),
                               ...DayOfWeekGroup.values.map((group) {
-                                return RadioListTile(
+                                return RadioListTile<DayOfWeekGroup>(
                                     title: Text(group.enumToString),
                                     value: group,
+                                    // ignore: deprecated_member_use
                                     groupValue: _dayOfWeekGroup,
+                                    // ignore: deprecated_member_use
                                     onChanged: (DayOfWeekGroup? selected) {
                                       if (selected != null) {
                                         setState(() {
@@ -954,7 +962,7 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                     ],
                   ),
                 ),
-                if (_calendar.isReadOnly == false &&
+                if (widget._calendar.isReadOnly == false &&
                     (_event?.eventId?.isNotEmpty ?? false)) ...[
                   ElevatedButton(
                     key: const Key('deleteEventButton'),
@@ -965,7 +973,7 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                       bool? result = true;
                       if (!(_rrule != null)) {
                         await _deviceCalendarPlugin.deleteEvent(
-                            _calendar.id, _event?.eventId);
+                            widget._calendar.id, _event?.eventId);
                       } else {
                         result = await showDialog<bool>(
                             context: context,
@@ -978,7 +986,9 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
                       }
 
                       if (result == true) {
-                        Navigator.pop(context, true);
+                        if (context.mounted) {
+                          Navigator.pop(context, true);
+                        }
                       }
                     },
                     child: const Text('Delete'),
@@ -990,7 +1000,7 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
         ),
       ),
       floatingActionButton: Visibility(
-        visible: _calendar.isReadOnly == false,
+        visible: widget._calendar.isReadOnly == false,
         child: FloatingActionButton(
           key: const Key('saveEventButton'),
           onPressed: () async {
@@ -1014,13 +1024,17 @@ class _CalendarEventPageState extends State<CalendarEventPage> {
             var createEventResult =
                 await _deviceCalendarPlugin.createOrUpdateEvent(_event);
             if (createEventResult?.isSuccess == true) {
-              Navigator.pop(context, true);
+              if (context.mounted) {
+                Navigator.pop(context, true);
+              }
             } else {
-              showInSnackBar(
-                  context,
-                  createEventResult?.errors
-                      .map((err) => '[${err.errorCode}] ${err.errorMessage}')
-                      .join(' | ') as String);
+              if (context.mounted) {
+                showInSnackBar(
+                    context,
+                    createEventResult?.errors
+                        .map((err) => '[${err.errorCode}] ${err.errorMessage}')
+                        .join(' | ') as String);
+              }
             }
           },
           child: const Icon(Icons.check),

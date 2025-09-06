@@ -1,3 +1,5 @@
+
+
 import 'dart:io';
 
 import 'package:device_calendar/device_calendar.dart';
@@ -6,6 +8,8 @@ import 'package:flutter/material.dart';
 
 late DeviceCalendarPlugin _deviceCalendarPlugin;
 
+
+
 class EventAttendeePage extends StatefulWidget {
   final Attendee? attendee;
   final String? eventId;
@@ -13,8 +17,8 @@ class EventAttendeePage extends StatefulWidget {
       : super(key: key);
 
   @override
-  _EventAttendeePageState createState() =>
-      _EventAttendeePageState(attendee, eventId ?? '');
+  State<EventAttendeePage> createState() =>
+      _EventAttendeePageState();
 }
 
 class _EventAttendeePageState extends State<EventAttendeePage> {
@@ -26,16 +30,18 @@ class _EventAttendeePageState extends State<EventAttendeePage> {
   var _status = AndroidAttendanceStatus.None;
   String _eventId = '';
 
-  _EventAttendeePageState(Attendee? attendee, eventId) {
-    if (attendee != null) {
-      _attendee = attendee;
+  @override
+  void initState() {
+    super.initState();
+    _attendee = widget.attendee;
+    _eventId = widget.eventId ?? '';
+    if (_attendee != null) {
       _nameController.text = _attendee!.name!;
       _emailAddressController.text = _attendee!.emailAddress!;
       _role = _attendee!.role!;
       _status = _attendee!.androidAttendeeDetails?.attendanceStatus ??
           AndroidAttendanceStatus.None;
     }
-    _eventId = eventId;
   }
 
   @override
@@ -114,7 +120,9 @@ class _EventAttendeePageState extends State<EventAttendeePage> {
 
                       await _deviceCalendarPlugin
                           .showiOSEventModal(_eventId);
+                      if (!mounted) return;
                       Navigator.popUntil(
+                          // ignore: use_build_context_synchronously
                           context, ModalRoute.withName(AppRoutes.calendars));
                       //TODO: finish calling and getting attendee details from iOS
                     },

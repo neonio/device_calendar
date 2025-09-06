@@ -15,6 +15,7 @@ dependencies:
   flutter_timezone: ^3.0.1
   device_calendar:
     path: ../
+  collection: ^1.19.1
 
 dev_dependencies:
   integration_test:

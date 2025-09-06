@@ -1,4 +1,4 @@
-import 'dart:io';
+
 
 import 'package:device_calendar/device_calendar.dart';
 import 'package:device_calendar_example/presentation/pages/calendar_add.dart';
@@ -13,7 +13,7 @@ class CalendarsPage extends StatefulWidget {
   const CalendarsPage({Key? key}) : super(key: key);
 
   @override
-  _CalendarsPageState createState() {
+  State<CalendarsPage> createState() {
     return _CalendarsPageState();
   }
 }
@@ -28,13 +28,10 @@ class _CalendarsPageState extends State<CalendarsPage> {
   List<Calendar> get _readOnlyCalendars =>
       _calendars.where((c) => c.isReadOnly == true).toList();
 
-  _CalendarsPageState() {
-    _deviceCalendarPlugin = DeviceCalendarPlugin();
-  }
-
   @override
   void initState() {
     super.initState();
+    _deviceCalendarPlugin = DeviceCalendarPlugin();
     _retrieveCalendars();
   }
 
@@ -118,13 +115,14 @@ class _CalendarsPageState extends State<CalendarsPage> {
                               Colors.grey,
                             ];
                             final color = await ColorPickerDialog
+                                // ignore: use_build_context_synchronously
                                 .selectColorDialog(colors, context);
-                            if (color != null) {
+                            if (color != null && mounted) {
                               final success = await _deviceCalendarPlugin
                                   .updateCalendarColor(calendar,
                                   calendarColor: googleCalendarColors
                                       .firstWhereOrNull((calendarColor) =>
-                                  calendarColor.color == color.value),
+                                  calendarColor.color == color.toARGB32()),
                                   color: color);
                               if (success) {
                                 _retrieveCalendars();

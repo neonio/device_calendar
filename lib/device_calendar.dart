@@ -1,4 +1,4 @@
-library device_calendar;
+
 
 export 'src/common/calendar_enums.dart';
 export 'src/models/attendee.dart';

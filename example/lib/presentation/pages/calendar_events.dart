@@ -13,13 +13,12 @@ class CalendarEventsPage extends StatefulWidget {
   const CalendarEventsPage(this._calendar, {Key? key}) : super(key: key);
 
   @override
-  _CalendarEventsPageState createState() {
-    return _CalendarEventsPageState(_calendar);
+  State<CalendarEventsPage> createState() {
+    return _CalendarEventsPageState();
   }
 }
 
 class _CalendarEventsPageState extends State<CalendarEventsPage> {
-  final Calendar _calendar;
   final GlobalKey<ScaffoldState> _scaffoldstate = GlobalKey<ScaffoldState>();
 
   late DeviceCalendarPlugin _deviceCalendarPlugin;
@@ -27,13 +26,10 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
   List<EventColor>? _eventColors;
   bool _isLoading = true;
 
-  _CalendarEventsPageState(this._calendar) {
-    _deviceCalendarPlugin = DeviceCalendarPlugin();
-  }
-
   @override
   void initState() {
     super.initState();
+    _deviceCalendarPlugin = DeviceCalendarPlugin();
     _retrieveEventColors();
     _retrieveCalendarEvents();
   }
@@ -43,7 +39,7 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
     return Scaffold(
         key: _scaffoldstate,
         appBar: AppBar(
-          title: Text('${_calendar.name} events'),
+          title: Text('${widget._calendar.name} events'),
           actions: [_getDeleteButton()],
         ),
         body: (_calendarEvents.isNotEmpty || _isLoading)
@@ -58,8 +54,8 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
                           _onLoading,
                           _onDeletedFinished,
                           _onTapped,
-                          _calendar.isReadOnly != null &&
-                              _calendar.isReadOnly as bool);
+                          widget._calendar.isReadOnly != null &&
+                              widget._calendar.isReadOnly as bool);
                     },
                   ),
                   if (_isLoading)
@@ -73,13 +69,13 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
   }
 
   Widget? _getAddEventButton(BuildContext context) {
-    if (_calendar.isReadOnly == false || _calendar.isReadOnly == null) {
+    if (widget._calendar.isReadOnly == false || widget._calendar.isReadOnly == null) {
       return FloatingActionButton(
         key: const Key('addEventButton'),
         onPressed: () async {
           final refreshEvents = await Navigator.push(context,
               MaterialPageRoute(builder: (BuildContext context) {
-            return CalendarEventPage(_calendar, null, null, _eventColors);
+            return CalendarEventPage(widget._calendar, null, null, _eventColors);
           }));
           if (refreshEvents == true) {
             await _retrieveCalendarEvents();
@@ -117,7 +113,7 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
     final refreshEvents = await Navigator.push(context,
         MaterialPageRoute(builder: (BuildContext context) {
       return CalendarEventPage(
-        _calendar,
+        widget._calendar,
         event,
         RecurringEventDialog(
           _deviceCalendarPlugin,
@@ -137,7 +133,7 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
     final startDate = DateTime.now().add(const Duration(days: -30));
     final endDate = DateTime.now().add(const Duration(days: 365 * 10));
     var calendarEventsResult = await _deviceCalendarPlugin.retrieveEvents(
-        _calendar.id,
+        widget._calendar.id,
         RetrieveEventsParams(startDate: startDate, endDate: endDate));
     setState(() {
       _calendarEvents = calendarEventsResult.data ?? [];
@@ -146,7 +142,7 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
   }
 
   void _retrieveEventColors() async {
-    _eventColors = await _deviceCalendarPlugin.retrieveEventColors(_calendar);
+    _eventColors = await _deviceCalendarPlugin.retrieveEventColors(widget._calendar);
   }
 
   Widget _getDeleteButton() {
@@ -163,9 +159,9 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Warning'),
-          content: SingleChildScrollView(
+          content: const SingleChildScrollView(
             child: ListBody(
-              children: const <Widget>[
+              children: <Widget>[
                 Text('This will delete this calendar'),
                 Text('Are you sure?'),
               ],
@@ -175,11 +171,13 @@ class _CalendarEventsPageState extends State<CalendarEventsPage> {
             TextButton(
               onPressed: () async {
                 var returnValue =
-                    await _deviceCalendarPlugin.deleteCalendar(_calendar.id!);
+                    await _deviceCalendarPlugin.deleteCalendar(widget._calendar.id!);
                 debugPrint(
                     'returnValue: ${returnValue.data}, ${returnValue.errors}');
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                }
               },
               child: const Text('Delete!'),
             ),
