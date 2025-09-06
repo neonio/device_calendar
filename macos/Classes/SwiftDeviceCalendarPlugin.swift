@@ -180,8 +180,6 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin {
             createCalendar(call, result)
         case deleteCalendarMethod:
             deleteCalendar(call, result)
-        case showEventModalMethod:
-            break
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -195,22 +193,22 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin {
     private func getSource() -> EKSource? {
       let localSources = eventStore.sources.filter { $0.sourceType == .local }
 
-      if (!localSources.isEmpty) {
-        return localSources.first
-      }
+            if (!localSources.isEmpty) {
+                return localSources.first
+            }
 
-      if let defaultSource = eventStore.defaultCalendarForNewEvents?.source {
-        return defaultSource
-      }
+            if let defaultSource = eventStore.defaultCalendarForNewEvents?.source {
+                return defaultSource
+            }
 
-      let iCloudSources = eventStore.sources.filter { $0.sourceType == .calDAV && $0.sourceIdentifier == "iCloud" }
+            let iCloudSources = eventStore.sources.filter { $0.sourceType == .calDAV && $0.sourceIdentifier == "iCloud" }
 
-      if (!iCloudSources.isEmpty) {
-        return iCloudSources.first
-      }
+            if (!iCloudSources.isEmpty) {
+                return iCloudSources.first
+            }
 
-      return nil
-    }
+            return nil
+        }
 
     private func createCalendar(_ call: FlutterMethodCall, _ result: FlutterResult) {
         let arguments = call.arguments as! Dictionary<String, AnyObject>
@@ -993,15 +991,26 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin {
             completion(true)
             return
         }
-        eventStore.requestAccess(to: .event, completion: {
-            (accessGranted: Bool, _: Error?) in
-            completion(accessGranted)
-        })
+        if #available(macOS 14.0, *) {
+            eventStore.requestFullAccessToEvents {
+                (accessGranted: Bool, _: Error?) in
+                completion(accessGranted)
+            }
+        } else {
+            eventStore.requestAccess(to: .event, completion: {
+                (accessGranted: Bool, _: Error?) in
+                completion(accessGranted)
+            })
+        }
     }
 
     private func hasEventPermissions() -> Bool {
         let status = EKEventStore.authorizationStatus(for: .event)
-        return status == EKAuthorizationStatus.authorized
+        if #available(macOS 14.0, *) {
+            return status == EKAuthorizationStatus.fullAccess
+        } else {
+            return status == EKAuthorizationStatus.authorized
+        }
     }
 }
 
